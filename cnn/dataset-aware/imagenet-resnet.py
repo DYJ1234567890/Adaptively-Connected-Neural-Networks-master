@@ -53,7 +53,7 @@ class Model(ImageNetModel):
 # 根据是否为训练数据对数据进行不同的处理，返回数据流或流水线
 def get_data(name, batch):
     isTrain = name == 'train'
-    # 根据是否是训练数据获得对应的augmentors
+    # 根据是否是训练数据获得对应的解析器参数列表
     augmentors = fbresnet_augmentor(isTrain)
     return get_imagenet_dataflow(
         args.data, name, batch, augmentors) # 返回图像数据流？
@@ -79,7 +79,9 @@ def get_config(model, fake=False):
             [[batch, 224, 224, 3], [batch]], 1000, random=False, dtype='uint8')
         callbacks = [] # 该语句可能是为了让没有训练数据的时候也能产生一些伪数据
     else:
+        #获取train数据流
         dataset_train = get_data('train', batch)
+        #获取val数据流
         dataset_val = get_data('val', batch)
 
         START_LR = 0.1   # 开始的学习率
@@ -145,6 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_dir', type=str, default='')
     args = parser.parse_args()  # 解析参数
     #  默认是Namespace(batch=256, data=None, data_format='NCHW', depth=50, eval=False, fake=False, gpu=None, load=None, log_dir='', mode='resnet')
+    # python imagenet-resnet.py  --gpu 0,1,2,3,4,5,6,7   --data [ROOT-OF-IMAGENET-DATASET]  --log_dir  [ROOT-OF-TRAINING-LOG-AND-MODEL]
     # 有GPU就用os.environ获得系统gpu信息
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -162,11 +165,14 @@ if __name__ == '__main__':
             logger.set_logger_dir(os.path.join('train_log', 'tmp'), 'd')
         else:
             log_foder = '/data0/wangguangrun/log_acnt/imagenet-resnet-%s' % (args.log_dir)
-            logger.set_logger_dir(os.path.join(log_foder))   # 保存路径？
-        config = get_config(model, fake=args.fake)    # 得到参数
+            logger.set_logger_dir(os.path.join(log_foder))   # 日志保存路径？
+        config = get_config(model, fake=args.fake)    # 开始学习 返回参数 模型，数据流，callbacks（存放模型，估算时间等），步长
         # 如果要加载模型的话
         if args.load:
             config.session_init = get_model_loader(args.load)
         # 所有GPU一起开始训练
         trainer = SyncMultiGPUTrainerReplicated(max(get_nr_gpu(), 1))
+        # 方法中调用了model.get_optimizer() model.build_graph();
+        # 而model = config.model,config中的model来自于155行model = Model(args.depth, args.mode)
+        # 而Model继承了ImageNet类，所以可以调用这两个方法
         launch_train_with_config(config, trainer)   # 最终训练的时候用到了get_optimizer 和 build_graph

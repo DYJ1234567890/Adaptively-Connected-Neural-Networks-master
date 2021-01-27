@@ -89,6 +89,8 @@ def fbresnet_augmentor(isTrain):
     return augmentors
 
 # 本函数：根据是否为训练数据对数据进行不同的处理并获得数据流
+# datadir:数据集的名字
+# name：训练数据还是测试数据
 def get_imagenet_dataflow(
         datadir, name, batch_size,
         augmentors, parallel=None): #获取图像网络数据流

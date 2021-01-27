@@ -73,7 +73,7 @@ def Grconv(x,
         bias_regularizer=bias_regularizer,activity_regularizer=activity_regularizer)  # zf为经过池化及全连接后的网络
 
     p = tf.get_variable('PPP', [3, 1, out_shape[2], out_shape[3]], initializer=tf.ones_initializer(), trainable = True)
-    # 创建一个名为'ppp' ,形状为，用initializer初始化的变量，并将变量添加到图形集合（trainable）
+    # 创建一个名为'ppp' ,形状为，全1初始化的变量，并将变量添加到图形集合（trainable）,P中应该是那三个参数
     p = tf.nn.softmax(p, 0)
 
     z = p[0:1,:,:,:] * z3 + p[1:2,:,:,:] * z1 + p[2:3,:,:,:] * zf # 存疑 三个样本
